@@ -1,0 +1,230 @@
+<html>
+  <head>
+    <style>
+      .axis path,
+      .axis line {
+        fill: none;
+        stroke: black;
+        shape-rendering: crispEdges;
+      }
+      .axis text {
+        font-family: sans-serif;
+        font-size: 11px;
+      }
+
+      rect {
+        -moz-transition: all 0.3s;
+        -webkit-transition: all 0.3s;
+        -o-transition: all 0.3s;
+        transition: all 0.3s;
+      }
+      rect:hover{
+        fill: orange;
+      }
+    </style>
+    <title>Lucas Dan W209 Assignment 4</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=9">
+  </head>
+  <body>
+    <button id="sort" onclick="sortBars()">Sort</button>
+    <div id="chart"></div>
+    <script src="d3.min.js"></script>
+    <script>
+function renderChart() {
+
+var data = d3.csv.parse(d3.select('#csv').text());
+var valueLabelWidth = 40; // space reserved for value labels (right)
+var barHeight = 20; // height of one bar
+var barLabelWidth = 100; // space reserved for bar labels
+var barLabelPadding = 5; // padding between bar and bar labels (left)
+var gridLabelHeight = 18; // space reserved for gridline labels
+var gridChartOffset = 3; // space between start of grid and first bar
+var maxBarWidth = 420; // width of the bar with the max value
+ 
+// accessor functions 
+var barLabel = function(d) { return d['Day_of_Week']; };
+var barValue = function(d) { return parseFloat(d['Coffee (Oz.)']); };
+ 
+// sorting
+var sortedData = data.sort(function(a, b) {
+ return d3.descending(barValue(a), barValue(b));
+}); 
+
+// scales
+var yScale = d3.scale.ordinal().domain(d3.range(0, sortedData.length)).rangeBands([0, sortedData.length * barHeight]);
+var y = function(d, i) { return yScale(i); };
+var yText = function(d, i) { return y(d, i) + yScale.rangeBand() / 2; };
+var x = d3.scale.linear().domain([0, d3.max(sortedData, barValue)]).range([0, maxBarWidth]);
+// svg container element
+var chart = d3.select('#chart').append("svg")
+  .attr('width', maxBarWidth + barLabelWidth + valueLabelWidth)
+  .attr('height', gridLabelHeight + gridChartOffset + sortedData.length * barHeight);
+// grid line labels
+var gridContainer = chart.append('g')
+  .attr('transform', 'translate(' + barLabelWidth + ',' + gridLabelHeight + ')'); 
+gridContainer.selectAll("text").data(x.ticks(10)).enter().append("text")
+  .attr("x", x)
+  .attr("dy", -3)
+  .attr("text-anchor", "middle")
+  .text(String);
+// vertical grid lines
+gridContainer.selectAll("line").data(x.ticks(10)).enter().append("line")
+  .attr("x1", x)
+  .attr("x2", x)
+  .attr("y1", 0)
+  .attr("y2", yScale.rangeExtent()[1] + gridChartOffset)
+  .style("stroke", "#ccc");
+// bar labels
+var labelsContainer = chart.append('g')
+  .attr('transform', 'translate(' + (barLabelWidth - barLabelPadding) + ',' + (gridLabelHeight + gridChartOffset) + ')'); 
+labelsContainer.selectAll('text').data(sortedData).enter().append('text')
+  .attr('y', yText)
+  .attr('stroke', 'none')
+  .attr('fill', 'black')
+  .attr("dy", ".35em") // vertical-align: middle
+  .attr('text-anchor', 'end')
+  .text(barLabel);
+// bars
+var barsContainer = chart.append('g')
+  .attr('transform', 'translate(' + barLabelWidth + ',' + (gridLabelHeight + gridChartOffset) + ')'); 
+barsContainer.selectAll("rect").data(sortedData).enter().append("rect")
+  .attr('y', y)
+  .attr('height', yScale.rangeBand())
+  .attr('width', function(d) { return x(barValue(d)); })
+  .attr('stroke', 'white')
+  .attr('fill', 'steelblue');
+// bar value labels
+barsContainer.selectAll("text").data(sortedData).enter().append("text")
+  .attr("x", function(d) { return x(barValue(d)); })
+  .attr("y", yText)
+  .attr("dx", 3) // padding-left
+  .attr("dy", ".35em") // vertical-align: middle
+  .attr("text-anchor", "start") // text-align: right
+  .attr("fill", "black")
+  .attr("stroke", "none")
+  .text(function(d) { return d3.round(barValue(d), 2); });
+// start line
+barsContainer.append("line")
+  .attr("y1", -gridChartOffset)
+  .attr("y2", yScale.rangeExtent()[1] + gridChartOffset)
+  .style("stroke", "#000");
+
+}
+    </script>
+    <script id="csv" type="text/csv">Day_of_Week,Coffee (Oz.)
+Monday,16
+Tuesday,12
+Wednesday,16
+Thursday,12
+Friday,16
+Saturday,8
+Sunday,6</script>
+    <script>renderChart();</script>
+    <script>
+
+      var width = 960,
+          height = 500;
+
+      var svg = d3.select("barsContainer").append("svg")
+          .attr("width", width)
+          .attr("height", height);
+
+      var numberOfButtons = 1;
+
+      var x = d3.scale.linear()
+          .domain([0,numberOfButtons+1])
+          .range([0,width]);
+
+      var buttons = d3.range(numberOfButtons).map(function(d,i) {
+          return { id: i+1, x: x(i+1), y: height/2 }
+      });
+
+      var buttonGroup = svg.selectAll("g")
+          .data(buttons)
+        .enter().append("g")
+          .attr("transform", function(d) { return "translate("+d.x+","+d.y+")"; });
+
+      buttonGroup.append("circle")
+          .attr("r", 20)
+          .attr("fill", '#000')
+          .attr("cursor", "pointer")
+          .on("mouseover", function(d,i) {
+              d3.select(this).transition()
+                  .ease("elastic")
+                  .duration("500")
+                  .attr("r", 35);
+              d3.select("#clipCircle"+i+" circle").transition()
+                  .ease("cubic-out")
+                  .duration("200")
+                  .attr("r", 32);
+              d3.select("#text"+i).transition()
+                  .ease("cubic-out")
+                  .duration("200")
+                  .attr("y", 12)
+                  .attr("font-size", 32)
+                  .attr("fill", "#333");
+          })
+          .on("mouseout", function(d,i) {
+              d3.select(this).transition()
+                  .ease("quad")
+                  .delay("100")
+                  .duration("200")
+                  .attr("r", 20);
+              d3.select("#clipCircle"+i+" circle").transition()
+                  .ease("quad")
+                  .delay("100")
+                  .duration("200")
+                  .attr("r", 0);
+              d3.select("#text"+i).transition()
+                  .ease("cubic-out")
+                  .duration("400")
+                  .delay("100")
+                  .attr("y", 7)
+                  .attr("font-size", 20)
+                  .attr("fill", "#FFF");;
+          } );
+      var sortOrder = false;
+      var sortBars = function () {
+          sortOrder = !sortOrder;
+          
+          sortItems = function (a, b) {
+              if (sortOrder) {
+                  return a.value - b.value;
+              }
+              return b.value - a.value;
+          };
+
+          svg.selectAll("rect")
+              .sort(sortItems)
+              .transition()
+              .delay(function (d, i) {
+              return i * 50;
+          })
+              .duration(1000)
+              .attr("y", function (d, i) {
+              return yScale(i);
+          });
+
+          svg.selectAll('text')
+              .sort(sortItems)
+              .transition()
+              .delay(function (d, i) {
+              return i * 50;
+          })
+              .duration(1000)
+              .text(function (d) {
+              return d.value;
+          })
+              .attr("text-anchor", "middle")
+              .attr("y", function (d, i) {
+              return yScale(i) + yScale.rangeBand() / 2;
+          })
+              .attr("y", function (d) {
+              return h - yScale(d.value) + 14;
+          });
+      };
+      // Add the onclick callback to the button
+      d3.select("#sort").on("click", sortBars);
+      </script>
+  </body>
+</html>
